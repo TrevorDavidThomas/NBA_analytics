@@ -6,6 +6,7 @@ library(here)
 library(ggmap)
 library(stringr)
 
+# set URLs to bbref home page, as well as coaching directory
 url_base <- "https://www.basketball-reference.com"
 url_main <- "https://www.basketball-reference.com/coaches/"
 
@@ -105,11 +106,12 @@ for(i in 1:length(url_coachesVector)){
   asstCoach_list[[i]] <- asstCoach_df
 }
 
-
+# save head coach and assistant coaching lists
 save(
   headCoach_list,
   asstCoach_list,
-  file = "C:/Users/tdtue/Dropbox/NBA_analytics/data/coachingLists_bbref_20180915.RData"
+  # save file to directory stored on GitHub, as file is modest in size
+  file = here("data","coachingLists_bbref.RData")
 )
 
 
