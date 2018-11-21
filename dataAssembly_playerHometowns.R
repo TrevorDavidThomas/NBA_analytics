@@ -332,7 +332,7 @@ player_geocode_final_df$Birth_Place[
   player_geocode_final_df$Name == 'Kirk Haston'
   ] <- 'Lobelville, TN'
 
-geocode_Haston <- geocode('Lobelville, TN', source = 'google')
+geocode_Haston <- geocode('Lobelville, TN', source = 'dsk')
 
 player_geocode_final_df$lon[
   player_geocode_final_df$Name == 'Kirk Haston'
@@ -351,7 +351,7 @@ player_geocode_final_df$Birth_Place[
   player_geocode_final_df$Name == 'Gaylon Nickerson'
   ] <- 'Osceola, AR'
 
-geocode_Nickerson <- geocode('Osceola, AR', source = 'google')
+geocode_Nickerson <- geocode('Osceola, AR', source = 'dsk')
 
 player_geocode_final_df$lon[
   player_geocode_final_df$Name == 'Gaylon Nickerson'
