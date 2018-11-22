@@ -24,10 +24,10 @@ The code presented here i sused to generate the bulk of the content dispalyed on
   - Plots predicted vs. observed plot rates for past player-seasons (1000+ minutes), highlighting and labeling over- and under-performers.
   - Generates predictions for incoming rookie class, with comparison to early-season returns.
 
-<p float="left">
-  <img src="https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/neuralNetDiagram-1.png" title="plotnet diagram" width="175">
-  <img src="https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/marginalResponse-1.png" title="marginal response curves" width="175">
-  <img src="https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/projVsObsScatter-1.png" title="predicted vs observed values" width="175">
-  <img src="https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/rookiePreds-1.png" title="rookie class predictions" width="175">
+<p float="right">
+  <img src="https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/neuralNetDiagram-1.png" title="plotnet diagram" width="190">
+  <img src="https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/marginalResponse-1.png" title="marginal response curves" width="190">
+  <img src="https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/projVsObsScatter-1.png" title="predicted vs observed values" width="190">
+  <img src="https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/rookiePreds-1.png" title="rookie class predictions" width="190">
 </p>
 
