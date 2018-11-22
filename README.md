@@ -24,4 +24,4 @@ The code presented here i sused to generate the bulk of the content dispalyed on
   - Plots predicted vs. observed plot rates for past player-seasons (1000+ minutes), highlighting and labeling over- and under-performers.
   - Generates predictions for incoming rookie class, with comparison to early-season returns.
 
-![](https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/neuralNetDiagram-1.png | width=100)
+<img src="https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/neuralNetDiagram-1.png" width="100">
