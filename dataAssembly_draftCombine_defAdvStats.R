@@ -178,10 +178,13 @@ join_df <- advanceStats_fin_df %>%
 join_df$season_num <- substr(join_df$season, start = 1, stop = 4) %>%
   as.numeric()
 
+# ID records as 'bad' if combine year comes after season
 join_df$temporal_flag <- NA_character_
-join_df$temporal_flag[join_df$season_num <= join_df$combine_year] <- 'Bad'
-join_df$temporal_flag[join_df$season_num > join_df$combine_year] <- 'Good'
+join_df$temporal_flag[join_df$season_num < join_df$combine_year] <- 'Bad'
+join_df$temporal_flag[join_df$season_num >= join_df$combine_year] <- 'Good'
 
+# remove all records for players who've been flagged as chronologically sketchy
+#   (this screens for guys who share names and are attributed the wrong set of combine measures)
 join_df_bad <- join_df %>% filter(temporal_flag == 'Bad')
 join_df$temporal_flag[
   join_df$link %in% join_df_bad$link
