@@ -20,4 +20,13 @@ The code presented here i sused to generate the bulk of the content dispalyed on
   - Tunes a best-fitting neural network model using the `nnet` package;
   - Compares model performance to the performance of a hierarchical linear model (neural net, predictably, does a bit better);
   - Displays the full structure of the best performing neural net (using `NeuralNetTools::plotnet()`);
-  - Assesses 
+  - Assesses variable importance, using Garson's algorithm (`NeuralNetTools::garson()`) and a set of faceted marginal effects curves (`ggplot2`);
+  - Plots predicted vs. observed plot rates for past player-seasons (1000+ minutes), highlighting and labeling over- and under-performers.
+  - Generates predictions for incoming rookie class, with comparison to early-season returns.
+
+![](https://visualizingtheleague.com/post/2018-11-15-draft-combine-measures-defense-part-three-using-neural-networks-to-predict-blocked-shot-rates_files/figure-html/neuralNetDiagram-1.png#thumbnail)
+
+img[src*="#thumbnail"] {
+   width:150px;
+   height:100px;
+}
