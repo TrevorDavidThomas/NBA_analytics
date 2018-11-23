@@ -1,6 +1,13 @@
 # NBA_analytics
 The contents of this repository focus on gathering, analyzing, and visualizing NBA data, and form the basis for the work displayed on [VisualizingTheLeague.com](https://visualizingtheleague.com/). This readme describes the composition of those contents, with scripts and their descriptions split into categories of gathering/processing and analyzing/visualizing.
 
+- [Gathering and Processing Data](#Gathering and Processing Data)
+  * [dataAssembly_historicalRoster.R](#dataAssembly_historicalRoster.R)
+- [Analyzing and Visualizing Data](#Analyzing and Visualizing Data)
+  * [analysis_draftCombine_advDef_nnetPredictions.R](#analysis_draftCombine_advDef_nnetPredictions.R)
+
+<!-- toc -->
+
 ## Gathering and Processing Data
 The code described here consists mainly of R scripts that pull and process data from the stats.nba API and/or [basketball-reference.com](https://www.basketball-reference.com/). These scripts tend to output data to the 'data' folder in this repository, provided that 1) the data files are relatively small, 2) they're used as inputs in other scripts in the repository, and 3) they're unlikely to be frequently updated or otherwise edited.
 
