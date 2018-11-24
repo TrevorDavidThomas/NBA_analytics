@@ -6,6 +6,7 @@ The contents of this repository focus on gathering, analyzing, and visualizing N
   * [dataAssembly_coachingStaffs_bballRef.R](#dataAssembly_coachingStaffs_bballRefR)
   * [dataAssembly_draftCombine_defAdvStats.R](#dataAssembly_draftCombine_defAdvStatsR)
   * [dataAssembly_playerHometowns.R](#dataAssembly_playerHometownsR)
+  * [dataAssembly_fullRoster_seasonTotals.R](dataAssembly_fullRoster_seasonTotalsR)
 
 - [Analyzing and Visualizing Data](#Analyzing-and-Visualizing-Data)
   * [analysis_draftCombine_advDef_nnetPredictions.R](#analysis_draftCombine_advDef_nnetPredictionsR)
