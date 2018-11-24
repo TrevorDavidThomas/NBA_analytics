@@ -2,17 +2,17 @@
 The contents of this repository focus on gathering, analyzing, and visualizing NBA data, and form the basis for the work displayed on [VisualizingTheLeague.com](https://visualizingtheleague.com/). This readme describes the composition of those contents, with scripts and their descriptions split into categories of gathering/processing and analyzing/visualizing.
 
 - [Gathering and Processing Data](#Gathering-and-Processing-Data)
-  * [dataAssembly_historicalRoster.R](#dataAssembly_historicalRosterR)
-  * [dataAssembly_coachingStaffs_bballRef.R](#dataAssembly_coachingStaffs_bballRefR)
-  * [dataAssembly_draftCombine_defAdvStats.R](#dataAssembly_draftCombine_defAdvStatsR)
-  * [dataAssembly_playerHometowns.R](#dataAssembly_playerHometownsR)
-  * [dataAssembly_fullRoster_seasonTotals.R](dataAssembly_fullRoster_seasonTotalsR)
+  * [dataAssembly_historicalRoster.R](#dataAssembly_historicalRosterR) - Get roster of all players in NBA history
+  * [dataAssembly_coachingStaffs_bballRef.R](#dataAssembly_coachingStaffs_bballRefR) - Get lists of all historical NBA head and assistant coaches
+  * [dataAssembly_draftCombine_defAdvStats.R](#dataAssembly_draftCombine_defAdvStatsR) - Get draft combine measures and defensive stats for all available players
+  * [dataAssembly_playerHometowns.R](#dataAssembly_playerHometownsR) - Get geocoded hometowns for all historical NBA players
+  * [dataAssembly_fullRoster_seasonTotals.R](dataAssembly_fullRoster_seasonTotalsR) - Get regular season stats for all historical NBA players
 
 - [Analyzing and Visualizing Data](#Analyzing-and-Visualizing-Data)
-  * [analysis_draftCombine_advDef_nnetPredictions.R](#analysis_draftCombine_advDef_nnetPredictionsR)
-  * [analysis_draftCombine_advDef_linearMod.R](#analysis_draftCombine_advDef_linearModR)
-  * [analysis_draftCombine_advDef_descriptives.R](#analysis_draftCombine_advDef_descriptivesR)
-  * [analysis_coachingNetworks.R](#analysis_coachingNetworksR)
+  * [analysis_draftCombine_advDef_nnetPredictions.R](#analysis_draftCombine_advDef_nnetPredictionsR) - Use neural networks to predict shot blocking from draft combine measures
+  * [analysis_draftCombine_advDef_linearMod.R](#analysis_draftCombine_advDef_linearModR) - Use hierarchical models to assess influence of combine measures on defensive statistics
+  * [analysis_draftCombine_advDef_descriptives.R](#analysis_draftCombine_advDef_descriptivesR) - Display pairwise relationships between combine measures and defensive stats
+  * [analysis_coachingNetworks.R](#analysis_coachingNetworksR) - Develop network visualizations for head-assistant coaching trees
 
 <!-- toc -->
 
