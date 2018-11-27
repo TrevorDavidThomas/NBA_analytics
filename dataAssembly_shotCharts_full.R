@@ -120,5 +120,3 @@ for(i in 21:length(years_str)){
 save(shotChart_fullYear_list,
      file = paste(localPath, "shotChart_fullYear_list.RData", sep=''))
 
-shotChart_fullYear_list %>% bind_rows() %>% nrow()
-#4293291
