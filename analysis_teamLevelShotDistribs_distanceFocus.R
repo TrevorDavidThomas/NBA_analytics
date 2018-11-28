@@ -1,7 +1,10 @@
 library(tidyverse)
-library(dplyr)
 library(ggalt)
 library(ggthemes)
+library(tweenr)
+library(png)
+library(gifski)
+library(here)
 
 # Load full NBA shot-level shot chart data, giving dataframe of all shots taken in
 #   reg season in given season, 1996-97 to present (11/24/2018);
@@ -83,19 +86,18 @@ shotDist_sum_df <- df %>%
   )
 
 
-
+# generate line chart of shot frequencies by distance over time
 p_densityLines_largeFacet <- shotDist_yearTeamSum_df %>%
-  # filter(season_id == '2018-19') %>%
   ggplot(aes(x = shot_distance, y = shot_tot_norm)
   ) +
-  geom_xspline(
+  geom_xspline( # generate lines (with tightly fit splines) for each team
     aes(group = team_name),
     spline_shape=0.3, alpha = .1
   ) +
-  geom_xspline(
+  geom_xspline( # generate single line for avg across all NBA seasons ('99 to present)
     data = shotDist_sum_df,
     spline_shape=0.3, alpha = 1, size = 1, color = 'black') +
-  geom_xspline(
+  geom_xspline( # generate lines for season-specific 
     data = shotDist_yearSum_df,
     spline_shape=0.3, alpha = 0.9, size = 1, color = 'blue') +
   geom_xspline(
@@ -127,6 +129,7 @@ p_densityLines_largeFacet <- shotDist_yearTeamSum_df %>%
     plot.caption = element_text(hjust = 0)
   )
 
+# save plot to local directory
 ggsave(
   plot = p_densityLines_largeFacet,
   filename = paste(localPath,
@@ -135,4 +138,93 @@ ggsave(
   width = 11,
   height = 8
 )
+
+
+#############################################################
+# create animated version of shot distance distribution line chart
+
+# start 'split' version of NBA-wide yearly average df, filtered for <= 35ft shots
+#   (this step ensures that each yearly split contains an identical set of distances)
+shotDist_yearSum_df_split <- shotDist_yearSum_df %>%
+  ungroup() %>%
+  filter(shot_distance <= 35) %>%
+  mutate(
+    season_id = paste('x',season_id,sep='') # add alphabetic character to avoid error in tween_states() 
+  )
+
+# split above dataframe into lists based on season ID
+shotDist_yearSum_df_split <- shotDist_yearSum_df_split %>%
+  split(shotDist_yearSum_df_split$season_id)
+
+# use tweenr to develop dataframe with in-between values
+shotDist_yearSum_df_tweens <- shotDist_yearSum_df_split %>%
+  tween_states(3,1,'cubic-in-out',200) %>%
+  mutate(
+    season_id = sub('.', '', season_id), # remove leading character from season ID field
+    year = as.numeric(substr(season_id, 1, 4))
+  )
+
+frames <- unique(shotDist_yearSum_df_tweens$.frame)
+
+for(i in 1:length(frames)){
+  # take subset of observed distributions ocurring for years prior to current frame
+  prior_trace_df <- shotDist_yearSum_df %>%
+    filter(
+      year <= subset(shotDist_yearSum_df_tweens, .frame==i)$year[1],
+      shot_distance <= 35
+    )
+  
+  p <- ggplot(
+    data = shotDist_yearSum_df_tweens %>% # use 'tween' df frames to plot observed distributions
+      filter(.frame == i),                #    as well as between phases
+    aes(x = shot_distance, y = shot_tot_norm)
+  ) +
+    geom_xspline(
+      data = prior_trace_df,
+      aes(group = season_id),
+      spline_shape=0.3, alpha = 0.1, size = 0.7
+    ) +
+    geom_xspline(
+      spline_shape=0.3, alpha = 0.9, size = 0.9, color = 'blue'
+    ) +
+    geom_hline(yintercept = 0, color = 'grey25') +
+    geom_vline(xintercept = 0, color = 'grey25') +
+    geom_vline(xintercept = c(22,23.75), color = 'grey30', linetype = 3) +
+    labs(
+      title = "Shot Frequency by Distance, NBA Regular Season",
+      subtitle = subset(shotDist_yearSum_df_tweens, .frame==i)$season_id[1],
+      x = "Shot distance from rim (ft)",
+      y = "Relative shot attempt frequency",
+      caption = "Source: stats.nba.api\nTrevor Thomas\nVisualizingTheLeague.com | @VisualizingTheL"
+    ) +
+    coord_cartesian(xlim = c(0,31),
+                    ylim = c(0,0.175)) +
+    theme_tufte()
+  
+  ggsave(
+    plot = p,
+    filename = paste(
+      'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shot_freq_gif_frames/gif_frame_',
+      str_pad(i, 3, pad = '0'),
+      '.png', sep = ''
+    ),
+    height = 4,
+    width = 6
+  )
+  
+}
+
+frame_dir <- 'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/scrap/shot_dist_frames/'
+frame_files <- list.files(frame_dir)
+frame_files <- paste(frame_dir, frame_files, sep = '')
+gif_file <- 'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shotDistFreq_allNBA.gif'
+
+gifski(png_files = frame_files,
+       gif_file = gif_file,
+       width = 600, height = 400,
+       loop = TRUE,
+       delay=0.1)
+
+utils::browseURL(gif_file)
+
 
