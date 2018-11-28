@@ -22,7 +22,7 @@ request_headers = c(
 
 # specify vector of (start) years to collect data for, corresponding to range of available
 #    short chart data
-years <- 2018:1996
+years <- 1996:2018
 
 # specify vector of year strings (formatted for stats.nba API call)
 years_str <- character()
@@ -47,11 +47,14 @@ for(i in 1:length(years)){
 
 shotChart_fullYear_list <- list()
 
-for(i in 21:length(years_str)){
+for(i in 1:length(years_str)){ #
+  t1 <- Sys.time()
+  
+  # specify request to stats.nba.com API
   request_shotChart <- GET(
     "http://stats.nba.com/stats/shotchartdetail",
     query = list(
-      PlayerID = 0,
+      PlayerID = 0, # set to 0 to get all players
       Season = years_str[i],
       SeasonType = "Regular Season",
       PlayerPosition = "",
@@ -77,43 +80,36 @@ for(i in 21:length(years_str)){
     add_headers(request_headers)
   )
   
-  stop_for_status(request_shotChart)
-  shots_data <- content(request_shotChart)
+  stop_for_status(request_shotChart) # make sure request didn't fail
   
-  raw_shots_data <- shots_data$resultSets[[1]]$rowSet
-  col_names <- tolower(as.character(shots_data$resultSets[[1]]$headers))
+  # get content of response from json object
+  shot_data_list <- fromJSON(content(request_shotChart, as = "text"))
   
-  if (length(raw_shots_data) == 0) {
-    shots <- data.frame(
-      matrix(nrow = 0, ncol = length(col_names))
-    )
-  } else {
-    shots <- data.frame(
-      matrix(
-        unlist(raw_shots_data),
-        ncol = length(col_names),
-        byrow = TRUE
-      )
-    )
-  }
+  # convert to dataframe and add column names
+  shot_data_df <- tbl_df(data.frame(shot_data_list$resultSets$rowSet[[1]], stringsAsFactors = FALSE))
+  names(shot_data_df) <- tolower(shot_data_list$resultSets$headers[[1]])
   
-  shots <- tbl_df(shots)
-  names(shots) <- col_names
-  
-  shots <- mutate(shots,
-                  # loc_x = as.numeric(as.character(loc_x)) / 10,
-                  # loc_y = as.numeric(as.character(loc_y)) / 10 + hoop_center_y,
-                  shot_distance = as.numeric(as.character(shot_distance)),
-                  shot_made_numeric = as.numeric(as.character(shot_made_flag)),
-                  shot_made_flag = factor(shot_made_flag, levels = c("1", "0"), labels = c("made", "missed")),
-                  shot_attempted_flag = as.numeric(as.character(shot_attempted_flag)),
-                  shot_value = ifelse(tolower(shot_type) == "3pt field goal", 3, 2),
-                  game_date = as.Date(game_date, format = "%Y%m%d"),
-                  season_id = years_str[i]
+  # mutate variables to convert to numeric values and add shot make and shot value
+  #   numeric indicators
+  shot_data_df <- mutate(shot_data_df,
+                         # loc_x = as.numeric(as.character(loc_x)) / 10,
+                         # loc_y = as.numeric(as.character(loc_y)) / 10 + hoop_center_y,
+                         shot_distance = as.numeric(as.character(shot_distance)),
+                         shot_made_numeric = as.numeric(as.character(shot_made_flag)),
+                         shot_made_flag = factor(shot_made_flag, levels = c("1", "0"), labels = c("made", "missed")),
+                         shot_attempted_flag = as.numeric(as.character(shot_attempted_flag)),
+                         shot_value = ifelse(tolower(shot_type) == "3pt field goal", 3, 2),
+                         game_date = as.Date(game_date, format = "%Y%m%d"),
+                         season_id = years_str[i]
   )
-
-  shotChart_fullYear_list[[i]] <- shots
-  print(paste(years_str[i], "complete", sep = ' '))
+  
+  # write shot dataframe to list 
+  shotChart_fullYear_list[[i]] <- shot_data_df
+  
+  # update with last year completed and time it took to complete
+  t2 <- Sys.time()
+  print(paste(years_str[i], "complete in", t2 - t1,
+              sep = ' '))
 }
 
 
