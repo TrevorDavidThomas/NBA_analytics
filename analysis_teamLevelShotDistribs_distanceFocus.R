@@ -1,10 +1,12 @@
 library(tidyverse)
 library(ggalt)
 library(ggthemes)
+library(ggrepel)
 library(tweenr)
 library(png)
 library(gifski)
 library(here)
+library(extrafont)
 
 # Load full NBA shot-level shot chart data, giving dataframe of all shots taken in
 #   reg season in given season, 1996-97 to present (11/24/2018);
@@ -20,10 +22,92 @@ df <- shotChart_fullYear_list %>%
     year = as.numeric(substr(season_id, 1, 4))
   )
 
+# generate path diagram, showing shot splits and efficiency by
+#  category: close 2, long 2, 3
+
+# designate category
+df$distance_cat <- NA_character_
+df$distance_cat[df$shot_distance <= 5] <- '2pt, <= 5ft'
+df$distance_cat[df$shot_distance > 5] <- '2pt, > 5ft'
+df$distance_cat[df$shot_value  == 3] <- '3pt'
+
+# calculate shot counts, points, and rates by category
+shotDistCat_yearSum_df <- df %>%
+  drop_na(shot_value) %>%
+  group_by(season_id,distance_cat) %>%
+  summarise(
+    shot_tot = n(),
+    shot_make = sum(shot_made_numeric),
+    shot_points = sum(shot_made_numeric*shot_value)
+  ) %>%
+  mutate(
+    shot_tot_norm = shot_tot/sum(shot_tot),
+    shot_makePct = shot_make / shot_tot,
+    shot_pps = shot_points / shot_tot,
+    year = as.numeric(substr(season_id, 1, 4))
+  )
+
+shotDistCat_yearSum_df$yr_label <- NA_character_
+shotDistCat_yearSum_df$yr_label[
+  shotDistCat_yearSum_df$year %in% c(1996,2018)
+] <- substr(shotDistCat_yearSum_df$season_id, 3, 7)[
+  shotDistCat_yearSum_df$year %in% c(1996,2018)
+  ]
+
+
+loadfonts(device="win") # make fonts available in Windows font database
+ggplot(
+  data = shotDistCat_yearSum_df,
+  aes(
+    x = shot_tot_norm, y = shot_pps,
+    group = distance_cat
+  )
+) +
+  geom_path(
+    aes(color = distance_cat), size = 0.9, alpha = .5
+  ) +
+  geom_text_repel(
+    aes(label = yr_label),
+    family='Garamond',
+    size = rel(3.25), color = 'grey40',
+    force = 50, nudge_y = -0.15
+  ) +
+  geom_point(
+    aes(color = distance_cat),
+    shape = 21, fill = 'white'
+  ) +
+  geom_segment(
+    aes(
+      x = min(shotDistCat_yearSum_df$shot_tot_norm),
+      xend = max(shotDistCat_yearSum_df$shot_tot_norm),
+      y = 0, yend = 0
+    )
+  ) +
+  geom_rangeframe(sides = 'l') +
+  scale_y_continuous(
+    limits = c(0,1.3),
+    breaks = c(0,
+               min(shotDistCat_yearSum_df$shot_pps), 1,
+               max(shotDistCat_yearSum_df$shot_pps)
+    ),
+    labels = scales::number_format(accuracy = 0.01)
+  ) +
+  scale_color_viridis_d(name = 'Shot\nCategory') +
+  labs(
+    title = 'Field Goal Frequency and Efficiency by Category',
+    subtitle = 'All NBA Regular Seasons, 1996-97 to 2018-2019',
+    x = 'Proportion of total field goal attempts',
+    y = 'Points per shot',
+    caption = "Source: stats.nba.com API\nTrevor Thomas\nVisualizingTheLeague.com | @VisualizingTheL"
+  ) +
+theme_tufte(base_family='Garamond')
+
+
+
+
 # generate summary dataframe, giving total shots, make percentage, relative freq, etc.
 #   group by shot distance, by season, and by team
 shotDist_yearTeamSum_df <- df %>%
-  # filter(year >= 2007) %>%
   group_by(team_name,season_id,shot_distance) %>%
   summarise(
     shot_tot = n(),
@@ -45,7 +129,6 @@ shotDist_yearTeamSum_df <- df %>%
 # generate summary dataframe, giving total shots, make percentage, relative freq, etc.
 #   group by shot distance and by season
 shotDist_yearSum_df <- df %>%
-  # filter(year >= 2007) %>%
   group_by(season_id,shot_distance) %>%
   summarise(
     shot_tot = n(),
@@ -67,7 +150,6 @@ shotDist_yearSum_df <- df %>%
 # generate summary dataframe, giving total shots, make percentage, relative freq, etc.
 #   group by shot distance
 shotDist_sum_df <- df %>%
-  # filter(year >= 2007) %>%
   group_by(shot_distance) %>%
   summarise(
     shot_tot = n(),
@@ -112,7 +194,7 @@ p_densityLines_largeFacet <- shotDist_yearTeamSum_df %>%
   labs(
     x = 'Shot distance (ft)',
     y = 'Relative shot frequency',
-    title = 'NBA Shot Distributions by Distance',
+    title = 'NBA Regular Season Shot Distributions by Distance',
     subtitle = 'Charting the Origin and Spread of Moreyball',
     caption = 'Shot frequency by distance from rim, for all regular season shots.
     Small gray lines: Individual team frequencies;
@@ -135,8 +217,8 @@ ggsave(
   filename = paste(localPath,
                    "graphs/shotFreq_byDist_largeFacet_NBAplusHouston.png",
                    sep = ''),
-  width = 11,
-  height = 8
+  width = 8,
+  height = 10
 )
 
 
@@ -166,6 +248,7 @@ shotDist_yearSum_df_tweens <- shotDist_yearSum_df_split %>%
 
 frames <- unique(shotDist_yearSum_df_tweens$.frame)
 
+loadfonts(device="win") # make fonts available in Windows font database
 for(i in 1:length(frames)){
   # take subset of observed distributions ocurring for years prior to current frame
   prior_trace_df <- shotDist_yearSum_df %>%
@@ -187,6 +270,16 @@ for(i in 1:length(frames)){
     geom_xspline(
       spline_shape=0.3, alpha = 0.9, size = 0.9, color = 'blue'
     ) +
+    geom_text(
+      aes(x = 22, y = 0.16, label = '22 ft'),
+      hjust = 1, nudge_x = -0.4,
+      size = rel(3.25), color = 'grey40', family='Garamond'
+    ) +
+    geom_text(
+      aes(x = 23.75, y = 0.16, label = '23.75 ft'),
+      hjust = 0, nudge_x = 0.4,
+      size = rel(3.25), color = 'grey40', family='Garamond'
+    ) +
     geom_hline(yintercept = 0, color = 'grey25') +
     geom_vline(xintercept = 0, color = 'grey25') +
     geom_vline(xintercept = c(22,23.75), color = 'grey30', linetype = 3) +
@@ -195,12 +288,13 @@ for(i in 1:length(frames)){
       subtitle = subset(shotDist_yearSum_df_tweens, .frame==i)$season_id[1],
       x = "Shot distance from rim (ft)",
       y = "Relative shot attempt frequency",
-      caption = "Source: stats.nba.api\nTrevor Thomas\nVisualizingTheLeague.com | @VisualizingTheL"
+      caption = "Source: stats.nba.com API\nTrevor Thomas\nVisualizingTheLeague.com | @VisualizingTheL"
     ) +
     coord_cartesian(xlim = c(0,31),
                     ylim = c(0,0.175)) +
-    theme_tufte()
+    theme_tufte(base_family='Garamond')
   
+  # save individual plot frames 
   ggsave(
     plot = p,
     filename = paste(
@@ -213,8 +307,21 @@ for(i in 1:length(frames)){
   )
   
 }
+# save final plot 15 more times, so gif pauses on last frame
+for(j in 1:15){
+  ggsave(
+    plot = p,
+    filename = paste(
+      'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shot_freq_gif_frames/gif_frame_',
+      str_pad(length(frames), 3, pad = '0'), "_", str_pad(j, 2, pad = '0'),
+      '.png', sep = ''
+    ),
+    height = 4,
+    width = 6
+  )
+}
 
-frame_dir <- 'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/scrap/shot_dist_frames/'
+frame_dir <- 'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shot_freq_gif_frames/'
 frame_files <- list.files(frame_dir)
 frame_files <- paste(frame_dir, frame_files, sep = '')
 gif_file <- 'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shotDistFreq_allNBA.gif'
@@ -225,6 +332,7 @@ gifski(png_files = frame_files,
        loop = TRUE,
        delay=0.1)
 
-utils::browseURL(gif_file)
+
+
 
 
