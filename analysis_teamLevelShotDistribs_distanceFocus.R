@@ -22,6 +22,308 @@ df <- shotChart_fullYear_list %>%
     year = as.numeric(substr(season_id, 1, 4))
   )
 
+#############################################################
+# generate summary dataframe, giving total shots, make percentage, relative freq, etc.
+#   group by shot distance, by season, and by team
+shotDist_yearTeamSum_df <- df %>%
+  group_by(team_name,season_id,shot_distance) %>%
+  summarise(
+    shot_tot = n(),
+    shot_make = sum(shot_made_numeric),
+    shot_points = sum(shot_made_numeric*shot_value),
+    
+    shot_tot_2pt = sum(shot_value == 2),
+    shot_tot_3pt = sum(shot_value == 3),
+    shot_make_2pt = sum( (shot_value == 2) * shot_value),
+    shot_make_3pt = sum( (shot_value == 3) * shot_value)
+  ) %>%
+  mutate(
+    shot_tot_norm = shot_tot/sum(shot_tot),
+    shot_makePct = shot_make / shot_tot,
+    shot_pps = shot_points / shot_tot,
+    year = as.numeric(substr(season_id, 1, 4))
+  )
+
+#############################################################
+# generate summary dataframe, giving total shots, make percentage, relative freq, etc.
+#   group by shot distance and by season
+shotDist_yearSum_df <- df %>%
+  group_by(season_id,shot_distance) %>%
+  summarise(
+    shot_tot = n(),
+    shot_make = sum(shot_made_numeric),
+    shot_points = sum(shot_made_numeric*shot_value),
+    
+    shot_tot_2pt = sum(shot_value == 2),
+    shot_tot_3pt = sum(shot_value == 3),
+    shot_make_2pt = sum( (shot_value == 2) * shot_value),
+    shot_make_3pt = sum( (shot_value == 3) * shot_value)
+  ) %>%
+  mutate(
+    shot_tot_norm = shot_tot/sum(shot_tot),
+    shot_makePct = shot_make / shot_tot,
+    shot_pps = shot_points / shot_tot,
+    year = as.numeric(substr(season_id, 1, 4))
+  )
+
+#############################################################
+# generate summary dataframe, giving total shots, make percentage, relative freq, etc.
+#   group by shot distance
+shotDist_sum_df <- df %>%
+  group_by(shot_distance) %>%
+  summarise(
+    shot_tot = n(),
+    shot_make = sum(shot_made_numeric),
+    shot_points = sum(shot_made_numeric*shot_value),
+    
+    shot_tot_2pt = sum(shot_value == 2),
+    shot_tot_3pt = sum(shot_value == 3),
+    shot_make_2pt = sum( (shot_value == 2) * shot_value),
+    shot_make_3pt = sum( (shot_value == 3) * shot_value)
+  ) %>%
+  mutate(
+    shot_tot_norm = shot_tot/sum(shot_tot),
+    shot_makePct = shot_make / shot_tot,
+    shot_pps = shot_points / shot_tot
+  )
+
+
+#############################################################
+# create animated version of shot distance distribution line chart
+
+# start 'split' version of NBA-wide yearly average df, filtered for <= 35ft shots
+#   (this step ensures that each yearly split contains an identical set of distances)
+shotDist_yearSum_df_split <- shotDist_yearSum_df %>%
+  ungroup() %>%
+  filter(shot_distance <= 35) %>%
+  mutate(
+    season_id = paste('x',season_id,sep='') # add alphabetic character to avoid error in tween_states() 
+  )
+
+# split above dataframe into lists based on season ID
+shotDist_yearSum_df_split <- shotDist_yearSum_df_split %>%
+  split(shotDist_yearSum_df_split$season_id)
+
+# use tweenr to develop dataframe with in-between values
+shotDist_yearSum_df_tweens <- shotDist_yearSum_df_split %>%
+  tween_states(3,1,'cubic-in-out',200) %>%
+  mutate(
+    season_id = sub('.', '', season_id), # remove leading character from season ID field
+    year = as.numeric(substr(season_id, 1, 4))
+  )
+
+frames <- unique(shotDist_yearSum_df_tweens$.frame)
+
+loadfonts(device="win") # make fonts available in Windows font database
+for(i in 1:length(frames)){
+  # take subset of observed distributions ocurring for years prior to current frame
+  prior_trace_df <- shotDist_yearSum_df %>%
+    filter(
+      year < subset(shotDist_yearSum_df_tweens, .frame==i)$year[1],
+      shot_distance <= 35
+    )
+  
+  p <- ggplot(
+    data = shotDist_yearSum_df_tweens %>% # use 'tween' df frames to plot observed distributions
+      filter(.frame == i),                #    as well as between phases
+    aes(x = shot_distance, y = shot_tot_norm)
+  ) +
+    geom_xspline(
+      data = prior_trace_df,
+      aes(group = season_id),
+      spline_shape=0.3, alpha = 0.1, size = 0.7
+    ) +
+    geom_xspline(
+      spline_shape=0.3, alpha = 0.9, size = 0.9, color = 'blue'
+    ) +
+    geom_text(
+      aes(x = 22, y = 0.16, label = '22 ft'),
+      hjust = 1, nudge_x = -0.4,
+      size = rel(3.25), color = 'grey40', family='Garamond'
+    ) +
+    geom_text(
+      aes(x = 23.75, y = 0.16, label = '23.75 ft'),
+      hjust = 0, nudge_x = 0.4,
+      size = rel(3.25), color = 'grey40', family='Garamond'
+    ) +
+    geom_hline(yintercept = 0, color = 'grey25') +
+    geom_vline(xintercept = 0, color = 'grey25') +
+    geom_vline(xintercept = c(22,23.75), color = 'grey30', linetype = 3) +
+    labs(
+      title = "Shot Frequency by Distance, NBA Regular Season",
+      subtitle = subset(shotDist_yearSum_df_tweens, .frame==i)$season_id[1],
+      x = "Shot distance from rim (ft)",
+      y = "Relative shot attempt frequency",
+      caption = "Source: stats.nba.com API\nTrevor Thomas\nVisualizingTheLeague.com | @VisualizingTheL"
+    ) +
+    coord_cartesian(xlim = c(0,31),
+                    ylim = c(0,0.175)) +
+    theme_tufte(base_family='Garamond')
+  
+  # save individual plot frames 
+  ggsave(
+    plot = p,
+    filename = paste(
+      'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shot_freq_gif_frames/gif_frame_',
+      str_pad(i, 3, pad = '0'),
+      '.png', sep = ''
+    ),
+    height = 4,
+    width = 6
+  )
+  
+}
+# save final plot 15 more times, so gif pauses on last frame
+for(j in 1:15){
+  ggsave(
+    plot = p,
+    filename = paste(
+      'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shot_freq_gif_frames/gif_frame_',
+      str_pad(length(frames), 3, pad = '0'), "_", str_pad(j, 2, pad = '0'),
+      '.png', sep = ''
+    ),
+    height = 4,
+    width = 6
+  )
+}
+
+frame_dir <- 'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shot_freq_gif_frames/'
+frame_files <- list.files(frame_dir)
+frame_files <- paste(frame_dir, frame_files, sep = '')
+gif_file <- 'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shotDistFreq_allNBA.gif'
+
+gifski(png_files = frame_files,
+       gif_file = gif_file,
+       width = 600, height = 400,
+       loop = TRUE,
+       delay=0.1)
+
+
+
+
+#############################################################
+# create animated version of points per shot by shot distance line chart
+
+# start 'split' version of NBA-wide yearly average df, filtered for <= 35ft shots
+#   (this step ensures that each yearly split contains an identical set of distances)
+
+# address missing pps value for 96-97 0ft shots
+shotDist_yearSum_df$shot_pps[
+  is.na(shotDist_yearSum_df$shot_pps)
+] <- shotDist_yearSum_df$shot_make[
+  is.na(shotDist_yearSum_df$shot_pps)
+  ] / shotDist_yearSum_df$shot_tot[
+    is.na(shotDist_yearSum_df$shot_pps)
+    ] * 2
+
+shotDist_yearSum_split <- shotDist_yearSum_df %>%
+  ungroup() %>%
+  filter(shot_distance <= 35) %>%
+  mutate(
+    season_id = paste('x',season_id,sep='') # add alphabetic character to avoid error in tween_states() 
+  )
+
+# split above dataframe into lists based on season ID
+shotDist_yearSum_df_split <- shotDist_yearSum_df_split %>%
+  split(shotDist_yearSum_df_split$season_id)
+
+# use tweenr to develop dataframe with in-between values
+shotDist_yearSum_df_tweens <- shotDist_yearSum_df_split %>%
+  tween_states(3,1,'cubic-in-out',200) %>%
+  mutate(
+    season_id = sub('.', '', season_id), # remove leading character from season ID field
+    year = as.numeric(substr(season_id, 1, 4))
+  )
+
+frames <- unique(shotDist_yearSum_df_tweens$.frame)
+
+loadfonts(device="win") # make fonts available in Windows font database
+for(i in 1:length(frames)){
+  # take subset of observed distributions ocurring for years prior to current frame
+  prior_trace_df <- shotDist_yearSum_df %>%
+    filter(
+      year < subset(shotDist_yearSum_df_tweens, .frame==i)$year[1],
+      shot_distance <= 35
+    )
+  
+  p <- ggplot(
+    data = shotDist_yearSum_df_tweens %>% # use 'tween' df frames to plot observed distributions
+      filter(.frame == i),                #    as well as between phases
+    aes(x = shot_distance, y = shot_pps)
+  ) +
+    geom_xspline(
+      data = prior_trace_df,
+      aes(group = season_id),
+      spline_shape=0.3, alpha = 0.1, size = 0.7
+    ) +
+    geom_xspline(
+      spline_shape=0.3, alpha = 0.9, size = 0.9, color = 'blue'
+    ) +
+    geom_text(
+      aes(x = 22, y = 0.16, label = '22 ft'),
+      hjust = 1, nudge_x = -0.4,
+      size = rel(3.25), color = 'grey40', family='Garamond'
+    ) +
+    geom_text(
+      aes(x = 23.75, y = 0.16, label = '23.75 ft'),
+      hjust = 0, nudge_x = 0.4,
+      size = rel(3.25), color = 'grey40', family='Garamond'
+    ) +
+    geom_hline(yintercept = 0, color = 'grey25') +
+    geom_vline(xintercept = 0, color = 'grey25') +
+    geom_vline(xintercept = c(22,23.75), color = 'grey30', linetype = 3) +
+    labs(
+      title = "Points per Shot by Distance, NBA Regular Season",
+      subtitle = subset(shotDist_yearSum_df_tweens, .frame==i)$season_id[1],
+      x = "Shot distance from rim (ft)",
+      y = "Points per shot",
+      caption = "Source: stats.nba.com API\nTrevor Thomas\nVisualizingTheLeague.com | @VisualizingTheL"
+    ) +
+    coord_cartesian(xlim = c(0,31),
+                    ylim = c(0,1.55)) +
+    theme_tufte(base_family='Garamond')
+  
+  # save individual plot frames 
+  ggsave(
+    plot = p,
+    filename = paste(
+      'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shot_pps_gif_frames/gif_frame_',
+      str_pad(i, 3, pad = '0'),
+      '.png', sep = ''
+    ),
+    height = 4,
+    width = 6
+  )
+  
+}
+# save final plot 15 more times, so gif pauses on last frame
+for(j in 1:15){
+  ggsave(
+    plot = p,
+    filename = paste(
+      'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shot_pps_gif_frames/gif_frame_',
+      str_pad(length(frames), 3, pad = '0'), "_", str_pad(j, 2, pad = '0'),
+      '.png', sep = ''
+    ),
+    height = 4,
+    width = 6
+  )
+}
+
+frame_dir <- 'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shot_pps_gif_frames/'
+frame_files <- list.files(frame_dir)
+frame_files <- paste(frame_dir, frame_files, sep = '')
+gif_file <- 'C:/Users/tdtue/Dropbox/NBA_analytics/graphs/shotDistPPS_allNBA.gif'
+
+gifski(png_files = frame_files,
+       gif_file = gif_file,
+       width = 600, height = 400,
+       loop = TRUE,
+       delay=0.1)
+
+
+
+#############################################################
 # generate path diagram, showing shot splits and efficiency by
 #  category: close 2, long 2, 3
 
@@ -47,6 +349,7 @@ shotDistCat_yearSum_df <- df %>%
     year = as.numeric(substr(season_id, 1, 4))
   )
 
+# create numeric season labels for first year available and current year
 shotDistCat_yearSum_df$yr_label <- NA_character_
 shotDistCat_yearSum_df$yr_label[
   shotDistCat_yearSum_df$year %in% c(1996,2018)
@@ -100,72 +403,193 @@ ggplot(
     y = 'Points per shot',
     caption = "Source: stats.nba.com API\nTrevor Thomas\nVisualizingTheLeague.com | @VisualizingTheL"
   ) +
-theme_tufte(base_family='Garamond')
+  theme_tufte(base_family='Garamond')
 
+#############################################################
+# show the previous graph in the context of current team-by-team splits
 
-
-
-# generate summary dataframe, giving total shots, make percentage, relative freq, etc.
-#   group by shot distance, by season, and by team
-shotDist_yearTeamSum_df <- df %>%
-  group_by(team_name,season_id,shot_distance) %>%
+# group by year, shot type, and team to get shot totals/makes/points
+shotDistCat_yearTeamSum_df <- df %>%
+  drop_na(shot_value) %>%
+  group_by(season_id,distance_cat,team_id) %>%
   summarise(
     shot_tot = n(),
     shot_make = sum(shot_made_numeric),
-    shot_points = sum(shot_made_numeric*shot_value),
-    
-    shot_tot_2pt = sum(shot_value == 2),
-    shot_tot_3pt = sum(shot_value == 3),
-    shot_make_2pt = sum( (shot_value == 2) * shot_value),
-    shot_make_3pt = sum( (shot_value == 3) * shot_value)
-  ) %>%
+    shot_points = sum(shot_made_numeric*shot_value)
+  ) %>% ungroup()
+
+# group again by just year and team to get shot proportion of shots in each type by team-season
+shotDistCat_yearTeamSum_df <- shotDistCat_yearTeamSum_df %>%
+  group_by(season_id, team_id) %>%
   mutate(
-    shot_tot_norm = shot_tot/sum(shot_tot),
+    shot_tot_norm = shot_tot/ sum(shot_tot),
     shot_makePct = shot_make / shot_tot,
     shot_pps = shot_points / shot_tot,
     year = as.numeric(substr(season_id, 1, 4))
   )
 
-# generate summary dataframe, giving total shots, make percentage, relative freq, etc.
-#   group by shot distance and by season
-shotDist_yearSum_df <- df %>%
-  group_by(season_id,shot_distance) %>%
+shotDistCat_yearTeamSum_df$yr_label <- NA_character_
+shotDistCat_yearTeamSum_df$yr_label[
+  shotDistCat_yearTeamSum_df$year %in% c(1996,2018)
+  ] <- substr(shotDistCat_yearTeamSum_df$season_id, 3, 7)[
+    shotDistCat_yearTeamSum_df$year %in% c(1996,2018)
+    ]
+
+# create key to attach team names to summary dataframe grouped on team id
+team_name_key <- df %>%
+  filter(year == 2018) %>%
+  select(team_id, team_name) %>%
+  group_by(team_id) %>%
+  slice(1)
+
+shotDistCat_yearTeamSum_df <- shotDistCat_yearTeamSum_df %>%
+  left_join(team_name_key)
+
+
+shotDistCat_yearSum_df$yr_label2 <- shotDistCat_yearSum_df$yr_label
+shotDistCat_yearSum_df$yr_label2[
+  !is.na(shotDistCat_yearSum_df$yr_label)
+  ] <- 
+
+
+loadfonts(device="win") # make fonts available in Windows font database
+ggplot(
+  data = shotDistCat_yearSum_df,
+  aes(
+    x = shot_tot_norm, y = shot_pps,
+    group = distance_cat
+  )
+) +
+  geom_path(
+    aes(color = distance_cat), size = 0.9, alpha = .5
+  ) +
+  geom_text_repel(
+    aes(label = yr_label),
+    family='Garamond',
+    size = rel(3.25), color = 'grey40',
+    force = 50, nudge_y = -0.3
+  ) +
+  geom_point(
+    aes(color = distance_cat),
+    shape = 21, fill = 'white'
+  ) +
+  geom_point(
+    data = shotDistCat_yearTeamSum_df %>%
+      filter(year == 2018),
+    color = 'black', alpha = 0.4
+  ) +
+  # geom_segment(
+  #   aes(
+  #     x = min(shotDistCat_yearSum_df$shot_tot_norm),
+  #     xend = max(shotDistCat_yearSum_df$shot_tot_norm),
+  #     y = 0, yend = 0
+  #   )
+  # ) +
+  geom_rangeframe(sides = 'lb') +
+  facet_grid(distance_cat~.) +
+  scale_y_continuous(
+    limits = c(0,1.3),
+    breaks = c(0,
+               min(shotDistCat_yearSum_df$shot_pps), 1,
+               max(shotDistCat_yearSum_df$shot_pps)
+    ),
+    labels = scales::number_format(accuracy = 0.01)
+  ) +
+  scale_color_viridis_d(name = 'Shot\nCategory') +
+  labs(
+    title = 'Field Goal Frequency and Efficiency by Category',
+    subtitle = 'All NBA Regular Seasons, 1996-97 to 2018-2019',
+    x = 'Proportion of total field goal attempts',
+    y = 'Points per shot',
+    caption = "Source: stats.nba.com API\nTrevor Thomas\nVisualizingTheLeague.com | @VisualizingTheL"
+  ) +
+  theme_tufte(base_family='Garamond')
+
+
+
+#############################################################
+# create scatterplot of 2018 shot frequencies and efficiencies, by
+#    shot category and franchise
+
+# group by year, shot type, and team to get shot totals/makes/points
+shotDistCat_yearTeamSum_df <- df %>%
+  drop_na(shot_value) %>%
+  group_by(season_id,distance_cat,team_id) %>%
   summarise(
     shot_tot = n(),
     shot_make = sum(shot_made_numeric),
-    shot_points = sum(shot_made_numeric*shot_value),
-    
-    shot_tot_2pt = sum(shot_value == 2),
-    shot_tot_3pt = sum(shot_value == 3),
-    shot_make_2pt = sum( (shot_value == 2) * shot_value),
-    shot_make_3pt = sum( (shot_value == 3) * shot_value)
-  ) %>%
+    shot_points = sum(shot_made_numeric*shot_value)
+  ) %>% ungroup()
+
+# group again by just year and team to get shot proportion of shots in each type by team-season
+shotDistCat_yearTeamSum_df <- shotDistCat_yearTeamSum_df %>%
+  group_by(season_id, team_id) %>%
   mutate(
-    shot_tot_norm = shot_tot/sum(shot_tot),
+    shot_tot_norm = shot_tot/ sum(shot_tot),
     shot_makePct = shot_make / shot_tot,
     shot_pps = shot_points / shot_tot,
     year = as.numeric(substr(season_id, 1, 4))
   )
 
-# generate summary dataframe, giving total shots, make percentage, relative freq, etc.
-#   group by shot distance
-shotDist_sum_df <- df %>%
-  group_by(shot_distance) %>%
-  summarise(
-    shot_tot = n(),
-    shot_make = sum(shot_made_numeric),
-    shot_points = sum(shot_made_numeric*shot_value),
-    
-    shot_tot_2pt = sum(shot_value == 2),
-    shot_tot_3pt = sum(shot_value == 3),
-    shot_make_2pt = sum( (shot_value == 2) * shot_value),
-    shot_make_3pt = sum( (shot_value == 3) * shot_value)
-  ) %>%
-  mutate(
-    shot_tot_norm = shot_tot/sum(shot_tot),
-    shot_makePct = shot_make / shot_tot,
-    shot_pps = shot_points / shot_tot
+shotDistCat_yearTeamSum_df$yr_label <- NA_character_
+shotDistCat_yearTeamSum_df$yr_label[
+  shotDistCat_yearTeamSum_df$year %in% c(1996,2018)
+  ] <- substr(shotDistCat_yearTeamSum_df$season_id, 3, 7)[
+    shotDistCat_yearTeamSum_df$year %in% c(1996,2018)
+    ]
+
+# create key to attach team names to summary dataframe grouped on team id
+team_name_key <- df %>%
+  filter(year == 2018) %>%
+  select(team_id, team_name) %>%
+  group_by(team_id) %>%
+  slice(1)
+
+shotDistCat_yearTeamSum_df <- shotDistCat_yearTeamSum_df %>%
+  left_join(team_name_key)
+
+
+loadfonts(device="win") # make fonts available in Windows font database
+ggplot(
+  data = shotDistCat_yearTeamSum_df %>%
+    filter(year == 2018),
+  aes(
+    x = distance_cat, y = shot_tot_norm, group = team_id
   )
+) +
+  geom_text_repel(
+    data = shotDistCat_yearTeamSum_df %>%
+      filter(year == 2018) %>%
+      filter(distance_cat == '3pt'),
+    aes(label = team_name),
+    hjust = 1, nudge_x = 2, direction = 'y', segment.size = 0.2,
+    size = 2.5, force = 1, segment.color = 'grey20'
+  ) +
+  geom_line(
+    alpha = 0.1, size = 1
+  ) +
+  geom_point(
+    aes(color = distance_cat), size = 1.5, alpha = .8,
+    shape = 21, fill = 'white' 
+  ) +
+  scale_color_viridis_d(name = 'Shot\nCategory') +
+  labs(
+    title = 'Field Goal Frequency and Efficiency by Category',
+    subtitle = 'All NBA Regular Seasons, 1996-97 to 2018-2019',
+    x = 'Field goal category',
+    y = 'Proportion of total field goal attempts',
+    caption = "Source: stats.nba.com API\nTrevor Thomas\nVisualizingTheLeague.com | @VisualizingTheL"
+  ) +
+  theme_tufte(base_family='Garamond') +
+  theme(
+    legend.position = 'bottom'
+  )
+
+
+
+
+
+
 
 
 # generate line chart of shot frequencies by distance over time
@@ -331,6 +755,10 @@ gifski(png_files = frame_files,
        width = 600, height = 400,
        loop = TRUE,
        delay=0.1)
+
+
+
+
 
 
 
