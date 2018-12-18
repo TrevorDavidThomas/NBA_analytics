@@ -618,9 +618,15 @@ shotDistCat_yearTeamSum_df <- shotDistCat_yearTeamSum_df %>%
     shot_tot_norm = shot_tot/ sum(shot_tot),
     shot_makePct = shot_make / shot_tot,
     shot_pps = shot_points / shot_tot,
-    year = as.numeric(substr(season_id, 1, 4))
+    year = as.numeric(substr(season_id, 1, 4)),
+    label = paste(
+      season_id, "\n",
+      round(shot_tot_norm, digits = 3),
+      sep = ''
+    )
   ) %>%
   left_join(team_name_key)
+
 
 
 loadfonts(device="win") # make fonts available in Windows font database
@@ -643,10 +649,35 @@ ggplot(
       filter(team_name == 'Houston Rockets'),
     color = 'red'
   ) +
+  geom_text_repel(
+    data = shotDistCat_yearTeamSum_df %>%
+      filter(distance_cat == '2pt, > 5ft') %>%
+      filter(team_name == 'Houston Rockets') %>%
+      filter(year %in% c(2012,2018)),
+    aes(label = label),
+    nudge_y = -0.075, size = rel(3.25), color = 'grey40', family='Garamond'
+  ) +
+  geom_point(
+    data = shotDistCat_yearTeamSum_df %>%
+      filter(distance_cat == '2pt, > 5ft') %>%
+      filter(team_name == 'Houston Rockets') %>%
+      filter(year %in% c(2012,2018)),
+    shape = 21, color = 'red', fill = 'white', size = 1.5
+  ) +
   labs(
     title = 'Proportion of FGAs Coming from Midrange, by Year',
     y = 'Porportion of FGAs from Midrange',
-    x = ''
+    x = '',
+    caption = 'Gray lines: Individual team proportions;
+    Red line: Houston Rockets proportions;
+    Blue line: NBA average proportions
+    
+    Source: nba.stats.com API
+    By: Trevor Thomas (@VisualizingTheL, VisualizingTheLeague.com)'
   ) +
   coord_cartesian(ylim = c(0,0.62)) +
+  scale_x_continuous(
+    limits = c(1996,2018),
+    breaks = c(1996,2000,2005,2010,2015,2018)
+  ) +
   theme_tufte(base_family='Garamond')
